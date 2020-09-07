@@ -4,20 +4,20 @@ import (
 	"bytes"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 	"strings"
+	"testing"
 )
 
 func TestRegisteringNewNodes(t *testing.T) {
 	registry := NewRegistry(&FakeIPGen{})
 	api := HttpApi{registry: registry, endpoint: "127.0.0.1:8083"}
 
-	var registrationTests = []struct{
-		name string
-		method string
-		jsonPayload string
+	var registrationTests = []struct {
+		name           string
+		method         string
+		jsonPayload    string
 		expectedStatus int
-		expectedRsp string
+		expectedRsp    string
 	}{
 		{"goodRequest", "POST", `{"publicKey": "somePublicKey1"}`, http.StatusOK,
 			`{"NodeIp":"1.1.1.1","Endpoint":"127.0.0.1:8083","AllowedIps":["1.1.1.1"]}`},
@@ -56,12 +56,12 @@ func TestRemovingNode(t *testing.T) {
 	registry.Put("pubKey1")
 	api := HttpApi{registry: registry, endpoint: "127.0.0.1:8083"}
 
-	var deletionTests = []struct{
-		name string
-		method string
-		jsonPayload string
+	var deletionTests = []struct {
+		name           string
+		method         string
+		jsonPayload    string
 		expectedStatus int
-		expectedRsp string
+		expectedRsp    string
 	}{
 		{"removeNode", "DELETE", `{"publicKey":"pubKey1"}`, http.StatusNoContent, ""},
 		{"badMethod", "POST", `{"publicKey":"pubKey1"}`, http.StatusMethodNotAllowed, http.StatusText(http.StatusMethodNotAllowed)},
@@ -94,12 +94,12 @@ func TestHeartBeat(t *testing.T) {
 	registry.Put("pubKey1")
 	api := HttpApi{registry: registry, endpoint: "127.0.0.1:8083"}
 
-	var heartBeatTests = []struct{
-		name string
-		method string
-		jsonPayload string
+	var heartBeatTests = []struct {
+		name           string
+		method         string
+		jsonPayload    string
 		expectedStatus int
-		expectedRsp string
+		expectedRsp    string
 	}{
 		{"beatHeart", "POST", `{"publicKey":"pubKey1"}`, http.StatusOK, `{"AllowedIps":["1.1.1.1"]}`},
 		{"badMethod", "GET", `{"publicKey":"pubKey1"}`, http.StatusMethodNotAllowed, http.StatusText(http.StatusMethodNotAllowed)},

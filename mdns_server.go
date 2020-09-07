@@ -10,21 +10,21 @@ import (
 var NewServerFunc = mdns.NewServer
 
 type MDNSServer struct {
-	server *mdns.Server
-	hostname string
+	server      *mdns.Server
+	hostname    string
 	serviceName string
 	description string
-	port int
-	running bool
+	port        int
+	running     bool
 }
 
 func NewMDNSServer(serviceName, description string, port int) *MDNSServer {
 	hostname, _ := os.Hostname()
 	server := MDNSServer{
-		hostname: fmt.Sprintf("%s.", hostname),
+		hostname:    fmt.Sprintf("%s.", hostname),
 		serviceName: serviceName,
 		description: description,
-		port: port,
+		port:        port,
 	}
 	return &server
 }
