@@ -72,20 +72,22 @@ func (r *Registry) GetRegisteredIPs() []string {
 
 func (r *Registry) StartPurging(deadline, interval int) {
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
-	expirationTime := int64(deadline)
 
 	go func() {
 		defer ticker.Stop()
 		for {
+			expirationTime := time.Now().Unix() - int64(deadline)
+			for key, node := range r.nodes {
+				if node.lastAliveAt < expirationTime {
+					fmt.Println("Deleting", key)
+					delete(r.nodes, key)
+				}
+			}
 			select {
 			case <-r.purging:
 				return
-			case now := <-ticker.C:
-				for key, node := range r.nodes {
-					if node.lastAliveAt < now.Unix()-expirationTime {
-						delete(r.nodes, key)
-					}
-				}
+			case <-ticker.C:
+				continue
 			}
 		}
 	}()

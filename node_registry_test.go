@@ -83,12 +83,12 @@ func TestPurgingGoro(t *testing.T) {
 	registry := NewRegistry(&FakeIPGen{})
 
 	n1, _ := registry.Put(pubkey1)
-	n1.lastAliveAt -= 1
+	n1.lastAliveAt -= 3
 	n2, _ := registry.Put(pubkey2)
 	n2.lastAliveAt += 10
 
 	registry.StartPurging(1, 1)
-	time.Sleep(1 * time.Second)
+	time.Sleep(100 * time.Millisecond)
 	registry.StopPurging()
 
 	noNode, err := registry.Get(pubkey1)
