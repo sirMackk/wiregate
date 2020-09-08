@@ -5,10 +5,6 @@ import (
 	"time"
 )
 
-type IPGenerator interface {
-	NewIP() string
-}
-
 type WgController interface {
 	AddHost(string, string) error
 	RemoveHost(string) error
@@ -50,12 +46,19 @@ func (r *Registry) Put(publicKey string) (*Node, error) {
 	if _, ok := r.nodes[publicKey]; ok {
 		return nil, fmt.Errorf("Node with pubkey %s already exists", publicKey)
 	}
-	ip := r.IPGen.NewIP()
+	ip, err := r.IPGen.LeaseIP()
+	if err != nil {
+		return nil, fmt.Errorf("Problem assigning wg ip: %s", err)
+	}
 	n := Node{
 		PubKey: publicKey,
 		VPNIP:  ip,
 	}
 	n.Beat()
+	err = r.WgControl.AddHost(publicKey, ip)
+	if err != nil {
+		return nil, fmt.Errorf("Problem with WgControl: %s", err)
+	}
 	r.nodes[publicKey] = &n
 
 	return &n, nil
@@ -65,6 +68,13 @@ func (r *Registry) Delete(publicKey string) error {
 	if _, ok := r.nodes[publicKey]; !ok {
 		return fmt.Errorf("Node with pubkey %s not found!", publicKey)
 	}
+	err := r.WgControl.RemoveHost(publicKey)
+	if err != nil {
+		return fmt.Errorf("Problem with WgControl: %s", err)
+	}
+	ip := r.nodes[publicKey].VPNIP
+	r.IPGen.ReleaseIP(ip)
+	// TODO: can this leave in an incosistent state? eg system, registry, ipgen?
 	delete(r.nodes, publicKey)
 	return nil
 }

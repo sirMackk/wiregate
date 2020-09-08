@@ -11,11 +11,14 @@ type FakeIPGen struct {
 	count int
 }
 
-func (f *FakeIPGen) NewIP() string {
+func (f *FakeIPGen) LeaseIP() (string, error) {
 	f.count += 1
-	return fmt.Sprintf("1.1.1.%d", f.count)
+	return fmt.Sprintf("1.1.1.%d", f.count), nil
 }
 
+func (f *FakeIPGen) ReleaseIP(string) error { return nil }
+
+// TODO: replace with mock to asset calls made to it
 type FakeWgControl struct{}
 
 func (f *FakeWgControl) AddHost(key, ip string) error {
