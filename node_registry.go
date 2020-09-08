@@ -9,6 +9,11 @@ type IPGenerator interface {
 	NewIP() string
 }
 
+type WgController interface {
+	AddHost(string, string) error
+	RemoveHost(string) error
+}
+
 type Node struct {
 	PubKey, VPNIP string
 	lastAliveAt   int64
@@ -19,16 +24,18 @@ func (n *Node) Beat() {
 }
 
 type Registry struct {
-	nodes   map[string]*Node
-	IPGen   IPGenerator
-	purging chan bool
+	nodes     map[string]*Node
+	IPGen     IPGenerator
+	WgControl WgController
+	purging   chan bool
 }
 
-func NewRegistry(ipgen IPGenerator) *Registry {
+func NewRegistry(ipgen IPGenerator, control WgController) *Registry {
 	return &Registry{
-		nodes:   make(map[string]*Node),
-		IPGen:   ipgen,
-		purging: make(chan bool),
+		nodes:     make(map[string]*Node),
+		IPGen:     ipgen,
+		WgControl: control,
+		purging:   make(chan bool),
 	}
 }
 
@@ -80,7 +87,7 @@ func (r *Registry) StartPurging(deadline, interval int) {
 			for key, node := range r.nodes {
 				if node.lastAliveAt < expirationTime {
 					fmt.Println("Deleting", key)
-					delete(r.nodes, key)
+					r.Delete(key)
 				}
 			}
 			select {

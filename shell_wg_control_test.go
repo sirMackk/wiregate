@@ -7,26 +7,46 @@ import (
 )
 
 // TODO: Cover cmd failure scenarios
-// TODO: In tests, check command args are correct
 
 type MockCommand struct {
 	Cmd    *exec.Cmd
 	Ret    []byte
 	RetErr error
+	// TODO: In tests, check command args are correct
+	Invocations [][]string
 }
 
-func NewMockCommand(cmd string, args ...string) MockCommand {
-	return MockCommand{
-		Cmd: exec.Command(cmd, args...),
+func NewMockCommand(cmd, cmdOutput, cmdRetErr string, args ...string) MockCommand {
+	mc := MockCommand{
+		Cmd:         exec.Command(cmd, args...),
+		Ret:         []byte(cmdOutput),
+		Invocations: make([][]string, 0),
 	}
+	mc.SaveInvocation(cmd, args)
+	if cmdRetErr != "" {
+		mc.RetErr = fmt.Errorf(cmdRetErr)
+	} else {
+		mc.RetErr = nil
+	}
+
+	return mc
 }
 
 func (m MockCommand) CombinedOutput() ([]byte, error) {
 	return m.Ret, m.RetErr
 }
 
-func createTestServer() *WireguardServer {
-	return NewWireguardServer(
+func (m MockCommand) SaveInvocation(cmd string, args []string) {
+	invocation := make([]string, len(args)+1)
+	invocation[0] = cmd
+	for i := 1; i < len(args)+1; i++ {
+		invocation[i] = args[i-1]
+	}
+	m.Invocations = append(m.Invocations, invocation)
+}
+
+func createTestServer() *ShellWireguardControl {
+	return NewShellWireguardControl(
 		"10.24.99.1/24",
 		"123",
 		"interface0",
@@ -53,13 +73,7 @@ func TestAddRemoveHost(t *testing.T) {
 	for _, tt := range addHostTests {
 		t.Run(tt.name, func(t *testing.T) {
 			execCommand = func(cmd string, args ...string) Commander {
-				mockCmd := NewMockCommand(cmd, args...)
-				mockCmd.Ret = []byte(tt.cmdOutput)
-				if tt.cmdRetErr != "" {
-					mockCmd.RetErr = fmt.Errorf(tt.cmdRetErr)
-				} else {
-					mockCmd.RetErr = nil
-				}
+				mockCmd := NewMockCommand(cmd, tt.cmdOutput, tt.cmdRetErr, args...)
 				return mockCmd
 			}
 
@@ -94,13 +108,7 @@ func TestCreateDestroyInterface(t *testing.T) {
 	for _, tt := range interfaceTests {
 		t.Run(tt.name, func(t *testing.T) {
 			execCommand = func(cmd string, args ...string) Commander {
-				mockCmd := NewMockCommand(cmd, args...)
-				mockCmd.Ret = []byte(tt.cmdOutput)
-				if tt.cmdRetErr != "" {
-					mockCmd.RetErr = fmt.Errorf(tt.cmdRetErr)
-				} else {
-					mockCmd.RetErr = nil
-				}
+				mockCmd := NewMockCommand(cmd, tt.cmdOutput, tt.cmdRetErr, args...)
 				return mockCmd
 			}
 			var err error

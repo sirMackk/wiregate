@@ -16,9 +16,19 @@ func (f *FakeIPGen) NewIP() string {
 	return fmt.Sprintf("1.1.1.%d", f.count)
 }
 
+type FakeWgControl struct{}
+
+func (f *FakeWgControl) AddHost(key, ip string) error {
+	return nil
+}
+
+func (f *FakeWgControl) RemoveHost(key string) error {
+	return nil
+}
+
 func TestGettingNode(t *testing.T) {
 	pubkey := "publicKey1"
-	registry := NewRegistry(&FakeIPGen{})
+	registry := NewRegistry(&FakeIPGen{}, &FakeWgControl{})
 	n1, err := registry.Put(pubkey)
 	if err != nil {
 		t.Errorf("Problem with creating registry entry: %v", err)
@@ -42,7 +52,7 @@ func TestGettingNode(t *testing.T) {
 
 func TestDeletingNode(t *testing.T) {
 	pubkey := "publicKey1"
-	registry := NewRegistry(&FakeIPGen{})
+	registry := NewRegistry(&FakeIPGen{}, &FakeWgControl{})
 	registry.Put(pubkey)
 	err := registry.Delete(pubkey)
 	if err != nil {
@@ -63,7 +73,7 @@ func TestDeletingNode(t *testing.T) {
 func TestGetRegisteredIPs(t *testing.T) {
 	pubkey1 := "publicKey1"
 	pubkey2 := "publicKey2"
-	registry := NewRegistry(&FakeIPGen{})
+	registry := NewRegistry(&FakeIPGen{}, &FakeWgControl{})
 
 	n1, _ := registry.Put(pubkey1)
 	n2, _ := registry.Put(pubkey2)
@@ -80,7 +90,7 @@ func TestGetRegisteredIPs(t *testing.T) {
 func TestPurgingGoro(t *testing.T) {
 	pubkey1 := "publicKey1"
 	pubkey2 := "publicKey2"
-	registry := NewRegistry(&FakeIPGen{})
+	registry := NewRegistry(&FakeIPGen{}, &FakeWgControl{})
 
 	n1, _ := registry.Put(pubkey1)
 	n1.lastAliveAt -= 3

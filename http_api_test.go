@@ -9,7 +9,7 @@ import (
 )
 
 func TestRegisteringNewNodes(t *testing.T) {
-	registry := NewRegistry(&FakeIPGen{})
+	registry := NewRegistry(&FakeIPGen{}, &FakeWgControl{})
 	api := HttpApi{registry: registry, endpoint: "127.0.0.1:8083"}
 
 	var registrationTests = []struct {
@@ -52,7 +52,7 @@ func TestRegisteringNewNodes(t *testing.T) {
 }
 
 func TestRemovingNode(t *testing.T) {
-	registry := NewRegistry(&FakeIPGen{})
+	registry := NewRegistry(&FakeIPGen{}, &FakeWgControl{})
 	registry.Put("pubKey1")
 	api := HttpApi{registry: registry, endpoint: "127.0.0.1:8083"}
 
@@ -90,7 +90,7 @@ func TestRemovingNode(t *testing.T) {
 }
 
 func TestHeartBeat(t *testing.T) {
-	registry := NewRegistry(&FakeIPGen{})
+	registry := NewRegistry(&FakeIPGen{}, &FakeWgControl{})
 	registry.Put("pubKey1")
 	api := HttpApi{registry: registry, endpoint: "127.0.0.1:8083"}
 

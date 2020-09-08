@@ -26,7 +26,7 @@ func (c Command) CombinedOutput() ([]byte, error) {
 	return c.Cmd.CombinedOutput()
 }
 
-type WireguardServer struct {
+type ShellWireguardControl struct {
 	Address        string
 	ListenPort     string
 	InterfaceName  string
@@ -35,8 +35,8 @@ type WireguardServer struct {
 	PostDown       string
 }
 
-func NewWireguardServer(address, listenPort, interfaceName, privateKeypath, postUp, postDown string) *WireguardServer {
-	s := &WireguardServer{
+func NewShellWireguardControl(address, listenPort, interfaceName, privateKeypath, postUp, postDown string) *ShellWireguardControl {
+	s := &ShellWireguardControl{
 		PrivateKeyPath: privateKeypath,
 		Address:        address,
 		ListenPort:     listenPort,
@@ -47,7 +47,7 @@ func NewWireguardServer(address, listenPort, interfaceName, privateKeypath, post
 	return s
 }
 
-func (s *WireguardServer) CreateInterface() error {
+func (s *ShellWireguardControl) CreateInterface() error {
 	//TODO figure out getting ipv4/ipv6 proto version
 	proto := "-4"
 
@@ -90,7 +90,7 @@ func (s *WireguardServer) CreateInterface() error {
 	return nil
 }
 
-func (s *WireguardServer) DestroyInterface() error {
+func (s *ShellWireguardControl) DestroyInterface() error {
 	//TODO figure out getting ipv4/ipv6 proto version
 	//proto := "-4"
 	if _, err := exec.LookPath("ip"); err != nil {
@@ -112,7 +112,7 @@ func (s *WireguardServer) DestroyInterface() error {
 	return nil
 }
 
-func (s *WireguardServer) AddHost(pubkey, peerIP string) error {
+func (s *ShellWireguardControl) AddHost(pubkey, peerIP string) error {
 	wgSetPeer := execCommand("wg", "set", s.InterfaceName, "peer", pubkey, "allowed-ips", peerIP)
 	if out, err := wgSetPeer.CombinedOutput(); err != nil {
 		return fmt.Errorf("Failed to add peer (%s - %s): %s\n%s", pubkey, peerIP, err, out)
@@ -120,7 +120,7 @@ func (s *WireguardServer) AddHost(pubkey, peerIP string) error {
 	return nil
 }
 
-func (s *WireguardServer) RemoveHost(pubkey string) error {
+func (s *ShellWireguardControl) RemoveHost(pubkey string) error {
 	wgSetPeerRemove := execCommand("wg", "set", s.InterfaceName, "peer", pubkey, "remove")
 	if out, err := wgSetPeerRemove.CombinedOutput(); err != nil {
 		return fmt.Errorf("Failed to removed peer (%s): %s\n%s", pubkey, err, out)
@@ -129,7 +129,7 @@ func (s *WireguardServer) RemoveHost(pubkey string) error {
 }
 
 func main() {
-	s := &WireguardServer{
+	s := &ShellWireguardControl{
 		PrivateKeyPath: "/etc/wireguard/wg0/privatekey",
 		Address:        "10.24.1.1/24",
 		ListenPort:     "51820",
