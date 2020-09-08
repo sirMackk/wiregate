@@ -6,7 +6,7 @@ import (
 )
 
 func TestAvailableIPGeneration(t *testing.T) {
-	ipgen, err := NewIPGen("192.168.1.2/29")
+	ipgen, err := NewSimpleIPGen("192.168.1.2/29")
 	if err != nil {
 		t.Errorf("Error while initializing SimpleIPGen: %s", err)
 	}
@@ -24,7 +24,7 @@ func TestAvailableIPGeneration(t *testing.T) {
 }
 
 func TestAvailableIPGenerationOverTop(t *testing.T) {
-	ipgen, err := NewIPGen("192.168.1.1/23")
+	ipgen, err := NewSimpleIPGen("192.168.1.1/23")
 	if err != nil {
 		t.Errorf("Error while initializing SimpleIPGen: %s", err)
 	}
@@ -35,7 +35,7 @@ func TestAvailableIPGenerationOverTop(t *testing.T) {
 }
 
 func TestLeasingIPs(t *testing.T) {
-	ipgen, err := NewIPGen("192.168.1.2/29")
+	ipgen, err := NewSimpleIPGen("192.168.1.2/29")
 	if err != nil {
 		t.Errorf("Error while initializing SimpleIPGen: %s", err)
 	}
@@ -56,7 +56,7 @@ func TestLeasingIPs(t *testing.T) {
 }
 
 func TestReleasingIPs(t *testing.T) {
-	ipgen, err := NewIPGen("192.168.1.2/29")
+	ipgen, err := NewSimpleIPGen("192.168.1.2/29")
 	if err != nil {
 		t.Errorf("Error while initializing SimpleIPGen: %s", err)
 	}

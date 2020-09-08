@@ -27,22 +27,22 @@ func (c Command) CombinedOutput() ([]byte, error) {
 }
 
 type ShellWireguardControl struct {
-	Address        string
-	ListenPort     string
-	InterfaceName  string
-	PrivateKeyPath string
-	PostUp         string
-	PostDown       string
+	InterfaceAddress string
+	ListenPort       string
+	InterfaceName    string
+	PrivateKeyPath   string
+	PostUp           string
+	PostDown         string
 }
 
 func NewShellWireguardControl(address, listenPort, interfaceName, privateKeypath, postUp, postDown string) *ShellWireguardControl {
 	s := &ShellWireguardControl{
-		PrivateKeyPath: privateKeypath,
-		Address:        address,
-		ListenPort:     listenPort,
-		InterfaceName:  interfaceName,
-		PostUp:         postUp,
-		PostDown:       postDown,
+		PrivateKeyPath:   privateKeypath,
+		InterfaceAddress: address,
+		ListenPort:       listenPort,
+		InterfaceName:    interfaceName,
+		PostUp:           postUp,
+		PostDown:         postDown,
 	}
 	return s
 }
@@ -64,7 +64,7 @@ func (s *ShellWireguardControl) CreateInterface() error {
 	}
 
 	// add ip addr to iface
-	ipSetAddr := execCommand("ip", proto, "address", "add", s.Address, "dev", s.InterfaceName)
+	ipSetAddr := execCommand("ip", proto, "address", "add", s.InterfaceAddress, "dev", s.InterfaceName)
 	if out, err := ipSetAddr.CombinedOutput(); err != nil {
 		return fmt.Errorf("Adding ip address to interface %s failed: %s\n%s", s.InterfaceName, err, out)
 	}
@@ -130,12 +130,12 @@ func (s *ShellWireguardControl) RemoveHost(pubkey string) error {
 
 func main() {
 	s := &ShellWireguardControl{
-		PrivateKeyPath: "/etc/wireguard/wg0/privatekey",
-		Address:        "10.24.1.1/24",
-		ListenPort:     "51820",
-		InterfaceName:  "wg0",
-		PostUp:         "iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE",
-		PostDown:       "iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE",
+		PrivateKeyPath:   "/etc/wireguard/wg0/privatekey",
+		InterfaceAddress: "10.24.1.1/24",
+		ListenPort:       "51820",
+		InterfaceName:    "wg0",
+		PostUp:           "iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE",
+		PostDown:         "iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE",
 	}
 	fmt.Println("starting wg0")
 	if err := s.CreateInterface(); err != nil {

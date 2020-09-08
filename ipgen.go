@@ -12,14 +12,28 @@ type IPGenerator interface {
 }
 
 type SimpleIPGen struct {
-	InputCIDR    string
+	BaseIPCIDR   string
 	BaseIP       string
 	LastIP       string
 	AvailableIPs map[string]bool
 }
 
+// baseIPCIDR is an ipv4 w/ cidr address that is used to generate
+// the whole range of IPs in the subnet.
+func NewSimpleIPGen(baseIPCIDR string) (*SimpleIPGen, error) {
+	ipgen := &SimpleIPGen{
+		BaseIPCIDR:   baseIPCIDR,
+		AvailableIPs: make(map[string]bool),
+	}
+	err := ipgen.populateIPs()
+	if err != nil {
+		return nil, err
+	}
+	return ipgen, nil
+}
+
 func (i *SimpleIPGen) populateIPs() error {
-	baseIP, ipNet, err := net.ParseCIDR(i.InputCIDR)
+	baseIP, ipNet, err := net.ParseCIDR(i.BaseIPCIDR)
 	i.BaseIP = baseIP.String()
 	if err != nil {
 		return err
@@ -77,16 +91,4 @@ func (i *SimpleIPGen) ReleaseIP(ip string) error {
 		return fmt.Errorf("IP %s not in available IPs!", ip)
 	}
 	return nil
-}
-
-func NewIPGen(inputCIDR string) (*SimpleIPGen, error) {
-	ipgen := &SimpleIPGen{
-		InputCIDR:    inputCIDR,
-		AvailableIPs: make(map[string]bool),
-	}
-	err := ipgen.populateIPs()
-	if err != nil {
-		return nil, err
-	}
-	return ipgen, nil
 }
