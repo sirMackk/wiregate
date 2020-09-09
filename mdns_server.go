@@ -1,11 +1,11 @@
 package wiregate
 
 import (
-	"fmt"
 	"net"
 	"os"
 
 	"github.com/ideasynthesis/mdns"
+	log "github.com/sirupsen/logrus"
 )
 
 var NewServerFunc = mdns.NewServer
@@ -24,7 +24,7 @@ type MDNSServer struct {
 func NewMDNSServer(description string, ip *net.IP, port int) *MDNSServer {
 	hostname, _ := os.Hostname()
 	server := MDNSServer{
-		hostname:    fmt.Sprintf("%s.", hostname),
+		hostname:    hostname,
 		serviceName: "_wiregate._tcp",
 		description: description,
 		ip:          ip,
@@ -37,10 +37,11 @@ func NewMDNSServer(description string, ip *net.IP, port int) *MDNSServer {
 func (m *MDNSServer) Start() error {
 	descriptions := []string{m.description}
 	// domain == "", results in ".local"
-	service, err := mdns.NewMDNSService(m.hostname, m.serviceName, "", m.hostname, m.port, []net.IP{*m.ip}, descriptions)
+	service, err := mdns.NewMDNSService(m.hostname, m.serviceName, "", "", m.port, []net.IP{*m.ip}, descriptions)
 	if err != nil {
 		return err
 	}
+	log.Debugf("Starting MDNSServer with config %#v", service)
 	server, err := NewServerFunc(&mdns.Config{Zone: service})
 	if err != nil {
 		return err

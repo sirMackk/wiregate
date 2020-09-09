@@ -37,10 +37,10 @@ func NewSimpleIPGen(baseIPCIDR string) (*SimpleIPGen, error) {
 
 func (i *SimpleIPGen) populateIPs() error {
 	baseIP, ipNet, err := net.ParseCIDR(i.BaseIPCIDR)
-	i.BaseIP = baseIP.String()
 	if err != nil {
 		return err
 	}
+	i.BaseIP = baseIP.String()
 	mask := []byte(ipNet.Mask)
 	notMask := make([]byte, len(mask))
 	for i, octet := range mask {

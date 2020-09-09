@@ -3,6 +3,8 @@ package wiregate
 import (
 	"fmt"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type WgController interface {
@@ -94,10 +96,11 @@ func (r *Registry) StartPurging(deadline, interval int) {
 	go func() {
 		defer ticker.Stop()
 		for {
+			log.Debug("Purging...")
 			expirationTime := time.Now().Unix() - int64(deadline)
 			for key, node := range r.nodes {
 				if node.lastAliveAt < expirationTime {
-					fmt.Println("Deleting", key)
+					log.Infof("Havent received beat from %s, purging", key)
 					r.Delete(key)
 				}
 			}
