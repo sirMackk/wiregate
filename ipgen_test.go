@@ -1,4 +1,4 @@
-package main
+package wiregate
 
 import (
 	"reflect"
@@ -39,17 +39,17 @@ func TestLeasingIPs(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error while initializing SimpleIPGen: %s", err)
 	}
-	_, err = ipgen.LeaseIP()
+	_, _, err = ipgen.LeaseIP()
 	if err != nil {
 		t.Errorf("Error while leasing IP : %s", err)
 	}
 	for i := 0; i < 5; i++ {
-		_, err = ipgen.LeaseIP()
+		_, _, err = ipgen.LeaseIP()
 		if err != nil {
 			t.Errorf("Expected to lease 5 ips, got error while trying to lease %d ip: %s", i, err)
 		}
 	}
-	_, err = ipgen.LeaseIP()
+	_, _, err = ipgen.LeaseIP()
 	if err == nil {
 		t.Errorf("Expected error when leasing exhausted ipgen, but there was no error")
 	}
@@ -60,9 +60,12 @@ func TestReleasingIPs(t *testing.T) {
 	if err != nil {
 		t.Errorf("Error while initializing SimpleIPGen: %s", err)
 	}
-	ip, err := ipgen.LeaseIP()
+	ip, cidr, err := ipgen.LeaseIP()
 	if err != nil {
 		t.Errorf("Error while leasing IP : %s", err)
+	}
+	if cidr != "29" {
+		t.Errorf("Leased IP CIDR doesn't match! Got %s, expected 29", cidr)
 	}
 	err = ipgen.ReleaseIP(ip)
 	if err != nil {

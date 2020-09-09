@@ -1,4 +1,4 @@
-package main
+package wiregate
 
 import (
 	"fmt"
@@ -11,8 +11,8 @@ type WgController interface {
 }
 
 type Node struct {
-	PubKey, VPNIP string
-	lastAliveAt   int64
+	PubKey, VPNIP, CIDR string
+	lastAliveAt         int64
 }
 
 func (n *Node) Beat() {
@@ -46,13 +46,14 @@ func (r *Registry) Put(publicKey string) (*Node, error) {
 	if _, ok := r.nodes[publicKey]; ok {
 		return nil, fmt.Errorf("Node with pubkey %s already exists", publicKey)
 	}
-	ip, err := r.IPGen.LeaseIP()
+	ip, cidr, err := r.IPGen.LeaseIP()
 	if err != nil {
 		return nil, fmt.Errorf("Problem assigning wg ip: %s", err)
 	}
 	n := Node{
 		PubKey: publicKey,
 		VPNIP:  ip,
+		CIDR:   cidr,
 	}
 	n.Beat()
 	err = r.WgControl.AddHost(publicKey, ip)

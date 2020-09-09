@@ -1,4 +1,4 @@
-package main
+package wiregate
 
 import (
 	"fmt"
@@ -11,9 +11,9 @@ type FakeIPGen struct {
 	count int
 }
 
-func (f *FakeIPGen) LeaseIP() (string, error) {
+func (f *FakeIPGen) LeaseIP() (string, string, error) {
 	f.count += 1
-	return fmt.Sprintf("1.1.1.%d", f.count), nil
+	return fmt.Sprintf("1.1.1.%d", f.count), "/24", nil
 }
 
 func (f *FakeIPGen) ReleaseIP(string) error { return nil }

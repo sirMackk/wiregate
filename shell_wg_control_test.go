@@ -1,4 +1,4 @@
-package main
+package wiregate
 
 import (
 	"fmt"
@@ -46,14 +46,18 @@ func (m MockCommand) SaveInvocation(cmd string, args []string) {
 }
 
 func createTestServer() *ShellWireguardControl {
-	return NewShellWireguardControl(
+
+	getEndpointIPFn = func(iface string) (string, error) {
+		return "199.199.199.199", nil
+	}
+	srv, _ := NewShellWireguardControl(
 		"10.24.99.1/24",
 		"123",
-		"interface0",
+		"wg-interface0",
+		"iface0",
 		"/tmp/privateKeyFilePath",
-		"postUpCmd",
-		"postDownCmd",
 	)
+	return srv
 }
 
 func TestAddRemoveHost(t *testing.T) {

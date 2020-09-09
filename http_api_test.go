@@ -1,4 +1,4 @@
-package main
+package wiregate
 
 import (
 	"bytes"
@@ -10,7 +10,7 @@ import (
 
 func TestRegisteringNewNodes(t *testing.T) {
 	registry := NewRegistry(&FakeIPGen{}, &FakeWgControl{})
-	api := HttpApi{registry: registry, endpoint: "127.0.0.1:8083"}
+	api := HttpApi{Registry: registry, EndpointIPPortPair: "127.0.0.1:8083", WGServerPublicKey: "123"}
 
 	var registrationTests = []struct {
 		name           string
@@ -20,7 +20,7 @@ func TestRegisteringNewNodes(t *testing.T) {
 		expectedRsp    string
 	}{
 		{"goodRequest", "POST", `{"publicKey": "somePublicKey1"}`, http.StatusOK,
-			`{"NodeIp":"1.1.1.1","Endpoint":"127.0.0.1:8083","AllowedIps":["1.1.1.1"]}`},
+			`{"NodeIp":"1.1.1.1","NodeCIDR":"/24","EndpointIPPortPair":"127.0.0.1:8083","AllowedIPs":["1.1.1.1"],"WGServerPublicKey":"123"}`},
 		{"wrongMethod", "PUT", "", http.StatusMethodNotAllowed, http.StatusText(http.StatusMethodNotAllowed)},
 		{"badJson", "POST", `{"publicKe": `, http.StatusInternalServerError, "Error: unexpected EOF"},
 		{"dupeKey", "POST", `{"publicKey": "somePublicKey1"}`, http.StatusInternalServerError,
@@ -44,7 +44,7 @@ func TestRegisteringNewNodes(t *testing.T) {
 			if status := rr.Code; status != tt.expectedStatus {
 				t.Errorf("Unexpected status code %d, want %d", http.StatusOK, status)
 			}
-			if strings.TrimRight(rr.Body.String(), "\n") != tt.expectedRsp {
+			if strings.TrimSuffix(rr.Body.String(), "\n") != tt.expectedRsp {
 				t.Errorf("Unexpected response, got %#v, want %#v", rr.Body.String(), tt.expectedRsp)
 			}
 		})
@@ -54,7 +54,7 @@ func TestRegisteringNewNodes(t *testing.T) {
 func TestRemovingNode(t *testing.T) {
 	registry := NewRegistry(&FakeIPGen{}, &FakeWgControl{})
 	registry.Put("pubKey1")
-	api := HttpApi{registry: registry, endpoint: "127.0.0.1:8083"}
+	api := HttpApi{Registry: registry, EndpointIPPortPair: "127.0.0.1:8083"}
 
 	var deletionTests = []struct {
 		name           string
@@ -77,7 +77,7 @@ func TestRemovingNode(t *testing.T) {
 				t.Fatal(err)
 			}
 			rr := httptest.NewRecorder()
-			handler := http.HandlerFunc(api.removeNode)
+			handler := http.HandlerFunc(api.unregisterNode)
 			handler.ServeHTTP(rr, req)
 			if status := rr.Code; status != tt.expectedStatus {
 				t.Errorf("Unexpected status code %d, want %d", rr.Code, status)
@@ -92,7 +92,7 @@ func TestRemovingNode(t *testing.T) {
 func TestHeartBeat(t *testing.T) {
 	registry := NewRegistry(&FakeIPGen{}, &FakeWgControl{})
 	registry.Put("pubKey1")
-	api := HttpApi{registry: registry, endpoint: "127.0.0.1:8083"}
+	api := HttpApi{Registry: registry, EndpointIPPortPair: "127.0.0.1:8083"}
 
 	var heartBeatTests = []struct {
 		name           string
@@ -101,7 +101,7 @@ func TestHeartBeat(t *testing.T) {
 		expectedStatus int
 		expectedRsp    string
 	}{
-		{"beatHeart", "POST", `{"publicKey":"pubKey1"}`, http.StatusOK, `{"AllowedIps":["1.1.1.1"]}`},
+		{"beatHeart", "POST", `{"publicKey":"pubKey1"}`, http.StatusOK, `{"AllowedIPs":["1.1.1.1"]}`},
 		{"badMethod", "GET", `{"publicKey":"pubKey1"}`, http.StatusMethodNotAllowed, http.StatusText(http.StatusMethodNotAllowed)},
 		{"badJson", "POST", `{"publicKey":`, http.StatusInternalServerError, "Error while decoding json"},
 		{"badKey", "POST", `{"publicKey":"pubKey999"}`, http.StatusNotFound, "Node not found"},
@@ -121,7 +121,7 @@ func TestHeartBeat(t *testing.T) {
 				t.Errorf("Unexpected status code %d, want %d", rr.Code, tt.expectedStatus)
 			}
 
-			if strings.TrimRight(rr.Body.String(), "\n") != tt.expectedRsp {
+			if strings.TrimSuffix(rr.Body.String(), "\n") != tt.expectedRsp {
 				t.Errorf("Unexpected response, got %#v, want %#v", rr.Body.String(), tt.expectedRsp)
 			}
 		})

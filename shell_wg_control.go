@@ -1,12 +1,14 @@
-package main
+package wiregate
 
 import (
 	"fmt"
+	"net"
 	"os/exec"
-	"time"
 )
 
 var execCommand = NewCommand
+var postUpBase = "iptables -A FORWARD -i %s -j ACCEPT; iptables -A FORWARD -o %s -j ACCEPT; iptables -t nat -A POSTROUTING -o %s -j MASQUERADE"
+var postDownBase = "iptables -D FORWARD -i %s -j ACCEPT; iptables -D FORWARD -o %s -j ACCEPT; iptables -t nat -D POSTROUTING -o %s -j MASQUERADE"
 
 type Commander interface {
 	CombinedOutput() ([]byte, error)
@@ -27,24 +29,55 @@ func (c Command) CombinedOutput() ([]byte, error) {
 }
 
 type ShellWireguardControl struct {
-	InterfaceAddress string
-	ListenPort       string
-	InterfaceName    string
-	PrivateKeyPath   string
-	PostUp           string
-	PostDown         string
+	InterfaceAddress   string
+	ListenPort         string
+	InterfaceName      string
+	PrivateKeyPath     string
+	PostUp             string
+	PostDown           string
+	EndpointIPPortPair string
+	EndpointIP         string
 }
 
-func NewShellWireguardControl(address, listenPort, interfaceName, privateKeypath, postUp, postDown string) *ShellWireguardControl {
-	s := &ShellWireguardControl{
-		PrivateKeyPath:   privateKeypath,
-		InterfaceAddress: address,
-		ListenPort:       listenPort,
-		InterfaceName:    interfaceName,
-		PostUp:           postUp,
-		PostDown:         postDown,
+var getEndpointIPFn = getEndpointIP
+
+func getEndpointIP(ifaceName string) (string, error) {
+	iface, err := net.InterfaceByName(ifaceName)
+	if err != nil {
+		return "", fmt.Errorf("Unable to resolve local interface %s: %s", ifaceName, err)
 	}
-	return s
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return "", fmt.Errorf("Unable to get addresses from interface %s: %s", ifaceName, err)
+	}
+	for _, addr := range addrs {
+		if ipnetAddr, ok := addr.(*net.IPNet); ok {
+			if ifaceIPv4 := ipnetAddr.IP.To4(); ifaceIPv4 != nil {
+				return ifaceIPv4.String(), nil
+			}
+		}
+	}
+	return "", nil
+}
+
+func NewShellWireguardControl(address, listenPort, wgIface, iface, privateKeypath string) (*ShellWireguardControl, error) {
+	postUp := fmt.Sprintf(postUpBase, wgIface, wgIface, iface)
+	postDown := fmt.Sprintf(postDownBase, wgIface, wgIface, iface)
+	endpointIP, err := getEndpointIPFn(iface)
+	if err != nil {
+		return nil, err
+	}
+	s := &ShellWireguardControl{
+		PrivateKeyPath:     privateKeypath,
+		InterfaceAddress:   address,
+		ListenPort:         listenPort,
+		InterfaceName:      wgIface,
+		PostUp:             postUp,
+		PostDown:           postDown,
+		EndpointIPPortPair: fmt.Sprintf("%s:%s", endpointIP, listenPort),
+		EndpointIP:         endpointIP,
+	}
+	return s, nil
 }
 
 func (s *ShellWireguardControl) CreateInterface() error {
@@ -126,44 +159,4 @@ func (s *ShellWireguardControl) RemoveHost(pubkey string) error {
 		return fmt.Errorf("Failed to removed peer (%s): %s\n%s", pubkey, err, out)
 	}
 	return nil
-}
-
-func main() {
-	s := &ShellWireguardControl{
-		PrivateKeyPath:   "/etc/wireguard/wg0/privatekey",
-		InterfaceAddress: "10.24.1.1/24",
-		ListenPort:       "51820",
-		InterfaceName:    "wg0",
-		PostUp:           "iptables -A FORWARD -i wg0 -j ACCEPT; iptables -A FORWARD -o wg0 -j ACCEPT; iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE",
-		PostDown:         "iptables -D FORWARD -i wg0 -j ACCEPT; iptables -D FORWARD -o wg0 -j ACCEPT; iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE",
-	}
-	fmt.Println("starting wg0")
-	if err := s.CreateInterface(); err != nil {
-		fmt.Println(err)
-		return
-	} else {
-		fmt.Println("All good, adding peer")
-	}
-	err := s.AddHost("S+f+y/K7Sr23ptSjd3xTDC23gDYZjQGbWrk1LSk7z1I=", "10.24.1.10/32")
-	if err != nil {
-		fmt.Println("Problem adding host ", err)
-	}
-	fmt.Println("host added, sleeping 12")
-	time.Sleep(120 * time.Second)
-	fmt.Println("removing peer")
-	if err == nil {
-		err = s.RemoveHost("S+f+y/K7Sr23ptSjd3xTDC23gDYZjQGbWrk1LSk7z1I=")
-		fmt.Println("removed host, sleeping 12")
-		time.Sleep(12 * time.Second)
-		if err != nil {
-			fmt.Println("Problem removing host ", err)
-		}
-	}
-
-	if err := s.DestroyInterface(); err != nil {
-		fmt.Println(err)
-		return
-	} else {
-		fmt.Println("Destroyed good")
-	}
 }

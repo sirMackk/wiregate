@@ -1,19 +1,21 @@
-package main
+package wiregate
 
 import (
 	"bytes"
 	"fmt"
 	"net"
+	"strings"
 )
 
 type IPGenerator interface {
-	LeaseIP() (string, error)
+	LeaseIP() (string, string, error)
 	ReleaseIP(string) error
 }
 
 type SimpleIPGen struct {
 	BaseIPCIDR   string
 	BaseIP       string
+	CIDR         string
 	LastIP       string
 	AvailableIPs map[string]bool
 }
@@ -23,6 +25,7 @@ type SimpleIPGen struct {
 func NewSimpleIPGen(baseIPCIDR string) (*SimpleIPGen, error) {
 	ipgen := &SimpleIPGen{
 		BaseIPCIDR:   baseIPCIDR,
+		CIDR:         strings.Split(baseIPCIDR, "/")[1],
 		AvailableIPs: make(map[string]bool),
 	}
 	err := ipgen.populateIPs()
@@ -74,14 +77,14 @@ func (i *SimpleIPGen) generateIPsInRange(baseIP, lastIP []byte) {
 	}
 }
 
-func (i *SimpleIPGen) LeaseIP() (string, error) {
+func (i *SimpleIPGen) LeaseIP() (string, string, error) {
 	for ip, leased := range i.AvailableIPs {
 		if !leased {
 			i.AvailableIPs[ip] = true
-			return ip, nil
+			return ip, i.CIDR, nil
 		}
 	}
-	return "", fmt.Errorf("Error! No IPs left to lease!")
+	return "", "", fmt.Errorf("Error! No IPs left to lease!")
 }
 
 func (i *SimpleIPGen) ReleaseIP(ip string) error {

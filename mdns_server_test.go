@@ -1,6 +1,7 @@
-package main
+package wiregate
 
 import (
+	"net"
 	"testing"
 
 	"github.com/ideasynthesis/mdns"
@@ -14,10 +15,10 @@ func TestStartingServer(t *testing.T) {
 	}
 	NewServerFunc = mockMDNSFunc
 
-	serviceName := "_exampleService._tcp"
+	ip := net.IPv4(192, 168, 128, 10)
 	serviceDesc := "serviceDescription"
 	port := 9999
-	server := NewMDNSServer(serviceName, serviceDesc, port)
+	server := NewMDNSServer(serviceDesc, &ip, port)
 
 	err := server.Start()
 	if err != nil {
