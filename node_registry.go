@@ -44,6 +44,8 @@ func (r *Registry) Get(publicKey string) (*Node, error) {
 	return nil, fmt.Errorf("Node with pubkey %s not found!", publicKey)
 }
 
+// TODO a way to insert non-expiring keys, like the server ip/key
+
 func (r *Registry) Put(publicKey string) (*Node, error) {
 	if _, ok := r.nodes[publicKey]; ok {
 		return nil, fmt.Errorf("Node with pubkey %s already exists", publicKey)

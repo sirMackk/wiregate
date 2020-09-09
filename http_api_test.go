@@ -10,7 +10,7 @@ import (
 
 func TestRegisteringNewNodes(t *testing.T) {
 	registry := NewRegistry(&FakeIPGen{}, &FakeWgControl{})
-	api := HttpApi{Registry: registry, EndpointIPPortPair: "127.0.0.1:8083", WGServerPublicKey: "123"}
+	api := HttpApi{Registry: registry, EndpointIPPortPair: "127.0.0.1:8083", WGServerPublicKey: "123", WGServerPeerIP: "1.1.1.1"}
 
 	var registrationTests = []struct {
 		name           string
@@ -20,7 +20,7 @@ func TestRegisteringNewNodes(t *testing.T) {
 		expectedRsp    string
 	}{
 		{"goodRequest", "POST", `{"publicKey": "somePublicKey1"}`, http.StatusOK,
-			`{"NodeIp":"1.1.1.1","NodeCIDR":"/24","EndpointIPPortPair":"127.0.0.1:8083","AllowedIPs":["1.1.1.1"],"WGServerPublicKey":"123"}`},
+			`{"NodeIp":"1.1.1.1","NodeCIDR":"/24","EndpointIPPortPair":"127.0.0.1:8083","AllowedIPs":["1.1.1.1"],"WGServerPublicKey":"123","WGServerPeerIP":"1.1.1.1"}`},
 		{"wrongMethod", "PUT", "", http.StatusMethodNotAllowed, http.StatusText(http.StatusMethodNotAllowed)},
 		{"badJson", "POST", `{"publicKe": `, http.StatusInternalServerError, "Error: unexpected EOF"},
 		{"dupeKey", "POST", `{"publicKey": "somePublicKey1"}`, http.StatusInternalServerError,

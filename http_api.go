@@ -16,6 +16,7 @@ type HttpApi struct {
 	EndpointIPPortPair string
 	VPNPassword        string
 	WGServerPublicKey  string
+	WGServerPeerIP     string
 }
 
 type RegistrationRequest struct {
@@ -29,6 +30,7 @@ type RegistrationReply struct {
 	EndpointIPPortPair string
 	AllowedIPs         []string
 	WGServerPublicKey  string
+	WGServerPeerIP     string
 }
 
 type DeregistrationRequest struct {
@@ -58,7 +60,7 @@ func (h *HttpApi) registerNode(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if r.Password != h.VPNPassword {
-		log.Info("registerNode received request with bad password from %s", req.RemoteAddr)
+		log.Infof("registerNode received request with bad password from %s", req.RemoteAddr)
 		http.Error(w, "Bad password", http.StatusForbidden)
 		return
 	}
@@ -75,6 +77,7 @@ func (h *HttpApi) registerNode(w http.ResponseWriter, req *http.Request) {
 		EndpointIPPortPair: h.EndpointIPPortPair,
 		AllowedIPs:         h.Registry.GetRegisteredIPs(),
 		WGServerPublicKey:  h.WGServerPublicKey,
+		WGServerPeerIP:     h.WGServerPeerIP,
 	}
 	log.Debugf("registerNode preparing registration repsonse to %s: %#v", req.RemoteAddr, response)
 	err = json.NewEncoder(w).Encode(response)
@@ -119,7 +122,7 @@ func (h *HttpApi) heartBeat(w http.ResponseWriter, req *http.Request) {
 	var hb HeartBeatRequest
 	err := decoder.Decode(&hb)
 	if err != nil {
-		log.Errorf("heartBeat received incorrect json from %s", req.RemoteAddr)
+		log.Errorf("heartBeat received incorrect json from %s: %s", req.RemoteAddr, err)
 		http.Error(w, "Error while decoding json", http.StatusInternalServerError)
 		return
 	}

@@ -44,10 +44,11 @@ func generateWGPrivateKey() string {
 		log.Errorf("Error while generating private WireGuard key: %s", err)
 		os.Exit(1)
 	}
-	return string(key)
+	return strings.TrimSpace(string(key))
 }
 
 func writePrivateKeyToFile(key string) string {
+	// TODO use WriteRestricted func to decrease permissions
 	keyFile, err := ioutil.TempFile("", "WireGatePrivateKey")
 	if err != nil {
 		log.Errorf("Error while writing WireGuard private key to file: %s", err)
@@ -74,7 +75,7 @@ func generateWGPublicKey(privateKey string) string {
 		log.Errorf("Error while generating WireGuard public key: %s", err)
 		os.Exit(1)
 	}
-	return string(pubKey)
+	return strings.TrimSpace(string(pubKey))
 }
 
 func generateTLSCertKeyFiles(ifaceIP *net.IP) (string, string) {
@@ -173,6 +174,7 @@ func server_main(conf *ServerConfig) {
 		EndpointIPPortPair: wgctrl.EndpointIPPortPair,
 		VPNPassword:        conf.vpnPassword,
 		WGServerPublicKey:  wgPublicKey,
+		WGServerPeerIP:     ipgen.BaseIP,
 	}
 
 	httpCertPath, httpKeyPath := generateTLSCertKeyFiles(&ifaceIP)
