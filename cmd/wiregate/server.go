@@ -155,7 +155,7 @@ func server_main(conf *ServerConfig) {
 	log.Infof("Generated private WireGuard key and saved to %s", wgPrivateKeyPath)
 	wgPublicKey := generateWGPublicKey(wgPrivateKey)
 	log.Infof("Generated public WireGuard key %s", wgPublicKey)
-	wgctrl, err := wg.NewShellWireguardControl(ipgen.BaseIP, strconv.Itoa(conf.wgPort), conf.wgIface, conf.iface, wgPrivateKeyPath)
+	wgctrl, err := wg.NewShellWireguardControl(ipgen.BaseIP, ipgen.SubnetIP, ipgen.CIDR, strconv.Itoa(conf.wgPort), conf.wgIface, conf.iface, wgPrivateKeyPath)
 	if err != nil {
 		log.Errorf("Error while creating WireGate controller : %s", err)
 		os.Exit(1)
@@ -163,6 +163,11 @@ func server_main(conf *ServerConfig) {
 	err = wgctrl.CreateInterface()
 	if err != nil {
 		log.Errorf("Error while creating WireGuard interface: %s", err)
+		os.Exit(1)
+	}
+	err = wgctrl.AddInterfaceRoute()
+	if err != nil {
+		log.Errorf("Error while adding WireGuard interface route: %s", err)
 		os.Exit(1)
 	}
 	log.Infof("Created WireGuard interface %s, bridged to %s, and started WireGuard server on %s", conf.wgIface, conf.iface, wgctrl.EndpointIPPortPair)

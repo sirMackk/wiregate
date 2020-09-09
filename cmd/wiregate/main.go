@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const wgVersion = "0.1"
+const wgVersion = "0.9"
 
 // TODO: help subcommand
 // TODO: keep all IPs as net.IP structs instead of strings
@@ -38,7 +38,6 @@ func main() {
 	var serverVersion = server.Bool("version", false, "Print version information")
 	var serverDebug = server.Bool("debug", false, "Turn on debug-level logging")
 
-	// TODO clean up client flags
 	var client = flag.NewFlagSet("client", flag.ExitOnError)
 	var clientVersion = client.Bool("version", false, "Print version information")
 	var clientDebug = client.Bool("debug", false, "Turn on debug-level logging")

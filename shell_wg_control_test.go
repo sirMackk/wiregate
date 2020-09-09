@@ -52,6 +52,8 @@ func createTestServer() *ShellWireguardControl {
 	}
 	srv, _ := NewShellWireguardControl(
 		"10.24.99.1/24",
+		"10.24.99.0",
+		"24",
 		"123",
 		"wg-interface0",
 		"iface0",

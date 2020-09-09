@@ -302,7 +302,7 @@ func client_main() {
 	fmt.Printf("\n")
 
 	// get wireguard private/public key
-	wgPubkey, wgPrivKey := generateWGKeypair()
+	wgPrivKey, wgPubkey := generateWGKeypair()
 
 	// register node
 	httpClient := get_http_client()

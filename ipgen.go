@@ -15,6 +15,7 @@ type IPGenerator interface {
 type SimpleIPGen struct {
 	BaseIPCIDR   string
 	BaseIP       string
+	SubnetIP     string
 	CIDR         string
 	LastIP       string
 	AvailableIPs map[string]bool
@@ -51,12 +52,14 @@ func (i *SimpleIPGen) populateIPs() error {
 		lastIP[i] = octet | notMask[i]
 	}
 	i.LastIP = fmt.Sprintf("%d.%d.%d.%d", lastIP[0], lastIP[1], lastIP[2], lastIP[3])
+	i.SubnetIP = ipNet.IP.String()
 	// Use network base IP to get full range
 	i.generateIPsInRange(ipNet.IP.To4(), lastIP)
 	return nil
 }
 
 func (i *SimpleIPGen) generateIPsInRange(baseIP, lastIP []byte) {
+	// TODO modifying baseIP - probably not a good idea
 	lastOctet := len(baseIP) - 1
 	baseIP[lastOctet]++
 	for ip := append([]byte(nil), baseIP...); !bytes.Equal(ip, lastIP); {

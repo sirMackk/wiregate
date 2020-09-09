@@ -32,6 +32,8 @@ type ShellWireguardControl struct {
 	InterfaceAddress   string
 	ListenPort         string
 	InterfaceName      string
+	InterfaceSubnet    string
+	SubnetCIDR         string
 	PrivateKeyPath     string
 	PostUp             string
 	PostDown           string
@@ -60,7 +62,8 @@ func getEndpointIP(ifaceName string) (string, error) {
 	return "", nil
 }
 
-func NewShellWireguardControl(address, listenPort, wgIface, iface, privateKeypath string) (*ShellWireguardControl, error) {
+func NewShellWireguardControl(address, subnetIP, subnetCIDR, listenPort, wgIface, iface, privateKeypath string) (*ShellWireguardControl, error) {
+	// TODO simplify initialization, dont use primitive strings
 	postUp := fmt.Sprintf(postUpBase, wgIface, wgIface, iface)
 	postDown := fmt.Sprintf(postDownBase, wgIface, wgIface, iface)
 	endpointIP, err := getEndpointIPFn(iface)
@@ -70,6 +73,8 @@ func NewShellWireguardControl(address, listenPort, wgIface, iface, privateKeypat
 	s := &ShellWireguardControl{
 		PrivateKeyPath:     privateKeypath,
 		InterfaceAddress:   address,
+		InterfaceSubnet:    subnetIP,
+		SubnetCIDR:         subnetCIDR,
 		ListenPort:         listenPort,
 		InterfaceName:      wgIface,
 		PostUp:             postUp,
@@ -120,6 +125,15 @@ func (s *ShellWireguardControl) CreateInterface() error {
 		return fmt.Errorf("Activating interface failed when executing post-up cmd: %s\n%s", err, out)
 	}
 
+	return nil
+}
+
+func (s *ShellWireguardControl) AddInterfaceRoute() error {
+	subnet := fmt.Sprintf("%s/%s", s.InterfaceSubnet, s.SubnetCIDR)
+	addRoute := execCommand("ip", "route", "add", subnet, "dev", s.InterfaceName)
+	if _, err := addRoute.CombinedOutput(); err != nil {
+		return fmt.Errorf("Adding route to WireGuard subnet failed: %s", err)
+	}
 	return nil
 }
 
