@@ -183,5 +183,6 @@ func server_main(conf *ServerConfig) {
 	log.Info("Starting registry purger")
 	registry.StartPurging(conf.purgeInterval, conf.purgeInterval)
 
+	log.Info("Server ready")
 	<-httpRunning
 }
