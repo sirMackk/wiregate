@@ -39,7 +39,6 @@ func printHelp() {
 	fmt.Println("Use 'wiregate [command] --help' for more information about a command")
 }
 
-
 func main() {
 	var server = flag.NewFlagSet("server", flag.ExitOnError)
 	var iface = server.String("interface", "", "REQUIRED: Network interface to use")

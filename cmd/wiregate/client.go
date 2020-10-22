@@ -52,12 +52,12 @@ type WireGateHTTPClient struct {
 
 type RegisteredNode struct {
 	// Clone of RegistrationReply to decouple client from HTTP API
-	IP string
-	CIDR string
+	IP                 string
+	CIDR               string
 	EndpointIPPortPair string
-	ServerPubKey string
-	ServerPeerIP string
-	AllowedIPs []string
+	ServerPubKey       string
+	ServerPeerIP       string
+	AllowedIPs         []string
 }
 
 func (w *WireGateHTTPClient) registerNode(publicKey, vpnPassword, apiEndpoint string) *RegisteredNode {
@@ -97,12 +97,12 @@ func (w *WireGateHTTPClient) registerNode(publicKey, vpnPassword, apiEndpoint st
 		os.Exit(1)
 	}
 	return &RegisteredNode{
-		IP: registerRsp.NodeIp,
-		CIDR: registerRsp.NodeCIDR,
+		IP:                 registerRsp.NodeIp,
+		CIDR:               registerRsp.NodeCIDR,
 		EndpointIPPortPair: registerRsp.EndpointIPPortPair,
-		ServerPubKey: registerRsp.WGServerPublicKey,
-		ServerPeerIP: registerRsp.WGServerPeerIP,
-		AllowedIPs: registerRsp.AllowedIPs,
+		ServerPubKey:       registerRsp.WGServerPublicKey,
+		ServerPeerIP:       registerRsp.WGServerPeerIP,
+		AllowedIPs:         registerRsp.AllowedIPs,
 	}
 }
 
@@ -115,18 +115,17 @@ func (w *WireGateHTTPClient) StartHeartBeat(wgService *WireGateService, pubKey, 
 	json.NewEncoder(&reqBuffer).Encode(hbReq)
 	hbReqReader := bytes.NewReader(reqBuffer.Bytes())
 	hbTicker := time.NewTicker(5 * time.Second)
+	endpointURL := fmt.Sprintf("https://%s/beat", wgService.HTTPEndpoint)
 	log.Info("Starting heart beat")
+heartBeatLoop:
 	for {
 		select {
 		case <-hbTicker.C:
-			log.Debug("Heart beat")
 			rspBuffer.Reset()
-			// TODO: better url formation
-			url := fmt.Sprintf("https://%s/beat", wgService.HTTPEndpoint)
-			rsp, err := w.client.Post(url, "application/json", hbReqReader)
+			rsp, err := w.client.Post(endpointURL, "application/json", hbReqReader)
 			if err != nil {
-				log.Errorf("Error while talking with WireGate Control: %s", err)
-				break
+				log.Errorf("Error while talking with WireGate server: %s", err)
+				break heartBeatLoop
 			}
 			hbReqReader.Seek(0, 0)
 
@@ -135,7 +134,7 @@ func (w *WireGateHTTPClient) StartHeartBeat(wgService *WireGateService, pubKey, 
 			err = json.NewDecoder(rsp.Body).Decode(&hbRsp)
 			if err != nil {
 				log.Errorf("Error while decoding heartbeat response: %s", err)
-				break
+				break heartBeatLoop
 			}
 			// TODO: what if wg cmd stalls for too long?
 			formattedAllowedIPs := formatAllowedIPsWithCIDR(append(hbRsp.AllowedIPs, serverIP))
@@ -148,6 +147,7 @@ func (w *WireGateHTTPClient) StartHeartBeat(wgService *WireGateService, pubKey, 
 
 		}
 	}
+	log.Info("Stopping heart beat")
 }
 
 func get_http_client() *WireGateHTTPClient {
@@ -332,7 +332,7 @@ func client_main() {
 	// get wireguard private/public key
 	wgPrivKey, wgPubkey := generateWGKeypair()
 
-	// register node
+	// register node w/ server
 	httpClient := get_http_client()
 	registeredNode := httpClient.registerNode(wgPubkey, string(vpnPassword), chosenWGService.HTTPEndpoint)
 
@@ -340,11 +340,18 @@ func client_main() {
 	createWGInterface(wgPrivKey, registeredNode)
 
 	// keep sending heartbeats + keep updating allowed IPs
-	go httpClient.StartHeartBeat(chosenWGService, wgPubkey, registeredNode.ServerPubKey, registeredNode.ServerPeerIP)
+	heartBeatDoneStream := make(chan struct{})
+	go func() {
+		httpClient.StartHeartBeat(chosenWGService, wgPubkey, registeredNode.ServerPubKey, registeredNode.ServerPeerIP)
+		heartBeatDoneStream <- struct{}{}
+	}()
 
 	terminator := make(chan os.Signal, 1)
 	signal.Notify(terminator, os.Interrupt)
-	<-terminator
+	select {
+	case <-terminator:
+	case <-heartBeatDoneStream:
+	}
 
 	// cleanup wg0 iface
 	log.Debugf("Deleting interface %s", "wg0")
