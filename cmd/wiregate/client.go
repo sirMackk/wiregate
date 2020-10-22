@@ -283,6 +283,7 @@ func createWGInterface(wgPrivKey, nodeIP, nodeCIDR, endpointAddr string, allowed
 
 func client_main() {
 	// TODO check if running as sudo (required for creating interfaces)
+	log.Info("Searching for WireGate servers on local network...")
 	// search mdns for wiregate services
 	WGServices := query_mdns_wiregate_svcs("_wiregate._tcp", 3)
 	if len(WGServices) == 0 {

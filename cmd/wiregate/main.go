@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const wgVersion = "0.9"
+const wgVersion = "0.9.1"
 
 // TODO: help subcommand
 // TODO: keep all IPs as net.IP structs instead of strings
@@ -25,6 +25,22 @@ func setupLogging(debug bool) {
 	})
 }
 
+func printHelp() {
+	fmt.Println("WireGate sets up WireGuard VPNs on LANs easily")
+	fmt.Println("")
+	fmt.Println("Usage:")
+	fmt.Println("wiregate [command]")
+	fmt.Println("")
+	fmt.Println("Available commands:")
+	fmt.Println("server\tStart as WireGate server")
+	fmt.Println("client\tStart as client")
+	fmt.Println("version\tPrint version")
+	fmt.Println("help\tPrint this text")
+	fmt.Println("")
+	fmt.Println("Use 'wiregate [command] --help' for more information about a command")
+}
+
+
 func main() {
 	var server = flag.NewFlagSet("server", flag.ExitOnError)
 	var iface = server.String("interface", "", "REQUIRED: Network interface to use")
@@ -35,25 +51,19 @@ func main() {
 	var httpPort = server.Int("http-port", 38490, "WireGate HTTP Control port")
 	var vpnPassword = server.String("vpn-password", "", "REQUIRED: Password to register with the WireGate VPN")
 	var purgeInterval = server.Int("purge-interval", 10, "Interval to purge unresponsive clients")
-	var serverVersion = server.Bool("version", false, "Print version information")
 	var serverDebug = server.Bool("debug", false, "Turn on debug-level logging")
 
 	var client = flag.NewFlagSet("client", flag.ExitOnError)
-	var clientVersion = client.Bool("version", false, "Print version information")
 	var clientDebug = client.Bool("debug", false, "Turn on debug-level logging")
 
 	if len(os.Args) < 2 {
-		fmt.Println("Expected 'server' or 'client' subcommands")
+		printHelp()
 		os.Exit(1)
 	}
 
 	switch os.Args[1] {
 	case "server":
 		if err := server.Parse(os.Args[2:]); err == nil {
-			if *serverVersion {
-				fmt.Printf("WireGate v%s\n", wgVersion)
-				os.Exit(0)
-			}
 			setupLogging(*serverDebug)
 
 			if *iface == "" {
@@ -79,15 +89,15 @@ func main() {
 		}
 	case "client":
 		if err := client.Parse(os.Args[2:]); err == nil {
-			if *clientVersion {
-				fmt.Printf("WireGate v%s\n", wgVersion)
-				os.Exit(0)
-			}
 			setupLogging(*clientDebug)
 			client_main()
 		}
+	case "version":
+		fmt.Printf("WireGate %s\n", wgVersion)
+	case "help":
+		printHelp()
 	default:
-		fmt.Printf("Unknown subcommand '%s'\n", os.Args[1])
+		fmt.Printf("Unknown subcommand: %s", os.Args[1])
 		os.Exit(1)
 	}
 }
