@@ -1,0 +1,21 @@
+# Golang CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-go/ for more details
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version
+      - image: circleci/golang:1.15
+    working_directory: /go/src/github.com/sirmackk/wiregate
+    steps:
+      - checkout
+      # specify any bash command here prefixed with `run: `
+      - run: go get -v -t -d ./...
+      - run: |
+         go test -v -coverprofile=c.out ./...
+         go tool cover -html=c.out -o coverage.html
+         mv coverage.html /tmp/artifacts
+      - store_artifacts:
+          path: /tmp/artifacts
+
