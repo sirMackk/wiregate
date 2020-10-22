@@ -50,8 +50,17 @@ type WireGateHTTPClient struct {
 	client *http.Client
 }
 
-// TODO dont return a bunch of strings like this, use a struct
-func (w *WireGateHTTPClient) registerNode(publicKey, vpnPassword, apiEndpoint string) (string, string, string, []string, string, string) {
+type RegisteredNode struct {
+	// Clone of RegistrationReply to decouple client from HTTP API
+	IP string
+	CIDR string
+	EndpointIPPortPair string
+	ServerPubKey string
+	ServerPeerIP string
+	AllowedIPs []string
+}
+
+func (w *WireGateHTTPClient) registerNode(publicKey, vpnPassword, apiEndpoint string) *RegisteredNode {
 	var reqBuffer bytes.Buffer
 	registerReq := &wg.RegistrationRequest{
 		PublicKey: publicKey,
@@ -64,8 +73,19 @@ func (w *WireGateHTTPClient) registerNode(publicKey, vpnPassword, apiEndpoint st
 		log.Errorf("Fatal error while communicating with WireGate Control: %s", err)
 		os.Exit(1)
 	}
-	// TODO handle non-200 rsps?
-	// TODO handle bad password - 403
+	if rsp.StatusCode != 200 {
+		if rsp.StatusCode == 403 {
+			log.Errorf("Bad password!")
+			os.Exit(1)
+		}
+		body, err := ioutil.ReadAll(rsp.Body)
+		if err != nil {
+			log.Errorf("Error while reading error response from server: %s", err)
+			os.Exit(1)
+		}
+		log.Errorf("Server error (%d): %s", rsp.StatusCode, string(body))
+		os.Exit(1)
+	}
 	reqBuffer.Reset()
 
 	log.Debugf("registerNode response: %#v\n", rsp)
@@ -76,7 +96,14 @@ func (w *WireGateHTTPClient) registerNode(publicKey, vpnPassword, apiEndpoint st
 		log.Debugf("registerNode response body %#v\n", rsp.Body)
 		os.Exit(1)
 	}
-	return registerRsp.NodeIp, registerRsp.NodeCIDR, registerRsp.EndpointIPPortPair, registerRsp.AllowedIPs, registerRsp.WGServerPublicKey, registerRsp.WGServerPeerIP
+	return &RegisteredNode{
+		IP: registerRsp.NodeIp,
+		CIDR: registerRsp.NodeCIDR,
+		EndpointIPPortPair: registerRsp.EndpointIPPortPair,
+		ServerPubKey: registerRsp.WGServerPublicKey,
+		ServerPeerIP: registerRsp.WGServerPeerIP,
+		AllowedIPs: registerRsp.AllowedIPs,
+	}
 }
 
 func (w *WireGateHTTPClient) StartHeartBeat(wgService *WireGateService, pubKey, serverPubkey, serverIP string) {
@@ -238,7 +265,7 @@ func WriteRestrictedFile(fname, contents string) (string, error) {
 	return fpath, nil
 }
 
-func createWGInterface(wgPrivKey, nodeIP, nodeCIDR, endpointAddr string, allowedIPs []string, wgServerPubkey, wgServerPeerIP string) {
+func createWGInterface(wgPrivKey string, registeredNode *RegisteredNode) {
 	// TODO: make interface name be customizable
 	ifaceName := "wg0"
 	if _, err := exec.LookPath("wg"); err != nil {
@@ -253,11 +280,11 @@ func createWGInterface(wgPrivKey, nodeIP, nodeCIDR, endpointAddr string, allowed
 		os.Exit(1)
 	}
 	//address nodeIP must be a cidr
-	nodeIPwithCIDR := fmt.Sprintf("%s/%s", nodeIP, nodeCIDR)
+	nodeIPwithCIDR := fmt.Sprintf("%s/%s", registeredNode.IP, registeredNode.CIDR)
 	log.Debugf("Configuring %s with address %s", ifaceName, nodeIPwithCIDR)
 	addIfaceAddr := exec.Command("ip", "address", "add", "dev", ifaceName, nodeIPwithCIDR)
 	if _, err := addIfaceAddr.CombinedOutput(); err != nil {
-		log.Errorf("Error while assigning address '%s' to %s interface: %s", nodeIP, ifaceName, err)
+		log.Errorf("Error while assigning address '%s' to %s interface: %s", registeredNode.IP, ifaceName, err)
 		os.Exit(1)
 	}
 
@@ -266,9 +293,9 @@ func createWGInterface(wgPrivKey, nodeIP, nodeCIDR, endpointAddr string, allowed
 		log.Errorf("Error while saving private wireguard key: %s", err)
 		os.Exit(1)
 	}
-	allowedIPs = append(allowedIPs, wgServerPeerIP)
+	allowedIPs := append(registeredNode.AllowedIPs, registeredNode.ServerPeerIP)
 	formattedAllowedIPs := formatAllowedIPsWithCIDR(allowedIPs)
-	wgSetIface := exec.Command("wg", "set", ifaceName, "private-key", wgPrivKeyPath, "peer", wgServerPubkey, "endpoint", endpointAddr, "allowed-ips", formattedAllowedIPs)
+	wgSetIface := exec.Command("wg", "set", ifaceName, "private-key", wgPrivKeyPath, "peer", registeredNode.ServerPubKey, "endpoint", registeredNode.EndpointIPPortPair, "allowed-ips", formattedAllowedIPs)
 	if _, err := wgSetIface.CombinedOutput(); err != nil {
 		log.Errorf("Error while setting up WireGuard interface settings: %s", err)
 		os.Exit(1)
@@ -307,13 +334,13 @@ func client_main() {
 
 	// register node
 	httpClient := get_http_client()
-	wgNodeIP, wgNodeCIDR, wgEndpointIPPortPair, wgAllowedIPs, wgServerPubKey, wgServerPeerIP := httpClient.registerNode(wgPubkey, string(vpnPassword), chosenWGService.HTTPEndpoint)
+	registeredNode := httpClient.registerNode(wgPubkey, string(vpnPassword), chosenWGService.HTTPEndpoint)
 
 	// create wireguard device
-	createWGInterface(wgPrivKey, wgNodeIP, wgNodeCIDR, wgEndpointIPPortPair, wgAllowedIPs, wgServerPubKey, wgServerPeerIP)
+	createWGInterface(wgPrivKey, registeredNode)
 
 	// keep sending heartbeats + keep updating allowed IPs
-	go httpClient.StartHeartBeat(chosenWGService, wgPubkey, wgServerPubKey, wgServerPeerIP)
+	go httpClient.StartHeartBeat(chosenWGService, wgPubkey, registeredNode.ServerPubKey, registeredNode.ServerPeerIP)
 
 	terminator := make(chan os.Signal, 1)
 	signal.Notify(terminator, os.Interrupt)

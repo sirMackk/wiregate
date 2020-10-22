@@ -8,9 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const wgVersion = "0.9.1"
+const wgVersion = "0.9.2"
 
-// TODO: help subcommand
 // TODO: keep all IPs as net.IP structs instead of strings
 
 func setupLogging(debug bool) {
