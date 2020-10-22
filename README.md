@@ -2,25 +2,27 @@
 
 ## What is it?
 
-WireGate is a CLI tool that makes creating a local WireGuard VPN simple.
+With WireGate, you can setup a local WireGuard VPN quickly and easily.
 
-It's useful if you want to create a temporary, secure connection between at least 2 hosts on a network you don't trust. For example, you may want to get some work done on public wifi at a library or airport and share data with your colleagues, but you don't want anyone to intercept your traffic. WireGate steamlines this process so that you and your friends have to run just one command each and share the password out of band–it does the subnet selection and peer adding/removing for you.
+Imagine that you're in a library or airport and want to share data with your colleagues. Security is important for you. WireGate allows you to set up a WireGuard VPN on the local network. All you and your friends need to do is run _one command each_ and share a password out of band.
 
-**WireGate is at v0.0.9 - it works, but it's got plenty of rough edges**
+**WireGate is at v0.0.9.** You might encounter some rough edges.
 
 ## How does it work?
 
-WireGate is a wrapper around WireGuard that automates a few manual steps for the simple use case of creating a VPN on a LAN. In a nutshell, here's what it does:
+WireGate is a wrapper around WireGuard. It automates the manual steps required to create a VPN on a LAN. Here's how it work:
+
 1. Alice starts the WireGate server and gives the password to Bob on a piece of paper.
-2. Bob starts the client, which finds the server and prompts Bob for the password.
-3. After Bob enters the password, WireGate assigns a new IP to the peer and adds its public key.
-4. Alice's and Bob's computers can talk to each other securely now.
+2. Bob starts the client, which finds the server on the local network and prompts Bob for the password.
+3. After Bob enters the password, the Alice's server configures the new WireGuard peer (IP, subnet, public key, etc.).
+4. Bob's client configures its WireGuard client.
+5. Both computers can talk to each other securely.
 
 ## Using
 
 1. Make sure [WireGuard is installed][0] on all computers.
 2. Join the same network. In 2020, this likely means the same wifi access point.
-3. If you're the server, the following command:
+3. On the server, run the following command:
 
 ```bash
 sudo ./wiregate server -interface eth0 -vpn-password "c4tsRule"
@@ -35,7 +37,7 @@ INFO[2020-09-15T16:05:21-07:00] Starting registry purger
 INFO[2020-09-15T16:05:21-07:00] Starting server on address: :38490
 ```
 
-4. If you're the client, run the following command:
+4. On the client, run the following command:
 
 ```bash
 sudo ./wiregate client
@@ -57,7 +59,7 @@ INFO[2020-09-15T16:08:12-07:00] Successfully registered beat for pubkey itqZxy1V
 INFO[2020-09-15T16:08:17-07:00] Successfully registered beat for pubkey itqZxy1VH5NlqGdZvVy02VsJLGqpVlhAoNpXmFKt60E= request by 192.168.1.138:56054
 ```
 
-You can now send data securely between all hosts that are part of the VPN.
+6. That's it! The two computers can now talk securely.
 
 ## Troubleshooting
 
@@ -93,7 +95,24 @@ peer: z87jiZiGDBgC2coHm1EbyJgJxr0q68liSS21aqwxax4=
   transfer: 764 B received, 820 B sent
 ```
 
-Check if you can ping the client from the server or the server from the client. The server will start with the lowest IP in the range (10.24.1.1 in this case).
+Check if you can ping the client from the server or the server from the client. The server will start with the lowest IP in the range (10.24.1.1 in this case):
+
+```bash
+# On the server
+$ ping 10.24.1.26
+PING 10.24.1.26 (10.24.1.26) 56(84) bytes of data.
+64 bytes from 10.24.1.26: icmp_seq=1 ttl=64 time=2.94 ms
+64 bytes from 10.24.1.26: icmp_seq=2 ttl=64 time=4.87 ms
+```
+
+```bash
+# On the client
+$ ping 10.24.1.1
+PING 10.24.1.1 (10.24.1.1) 56(84) bytes of data.
+64 bytes from 10.24.1.1: icmp_seq=1 ttl=64 time=2.28 ms
+64 bytes from 10.24.1.1: icmp_seq=2 ttl=64 time=3.12 ms
+```
+
 
 Because WireGuard changes routing settings on the box you're on, it's also useful to use `route` or `ip route` to see those:
 
@@ -106,7 +125,7 @@ default via 192.168.1.1 dev wlp4s0 proto dhcp metric 600
 # Everything looks alright here: traffic for 10.24.1.0/24 should be going out the wg0 interface
 ```
 
-If there's no wg0 route, then that's where I would start investigating.
+If there's no wg0 route, that's a good place to start investigating.
 
 
 [0]: https://www.wireguard.com/
