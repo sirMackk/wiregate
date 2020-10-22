@@ -1,5 +1,7 @@
 # WireGate
 
+Unit tests: [![Circle CI](https://circleci.com/gh/sirMackk/wiregate/tree/master.svg?style=svg)](https://circleci.com/gh/sirMackk/wiregate/tree/master)
+
 ## What is it?
 
 With WireGate, you can setup a local WireGuard VPN quickly and easily.
