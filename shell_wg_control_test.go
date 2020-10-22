@@ -82,6 +82,9 @@ func TestAddRemoveHost(t *testing.T) {
 				mockCmd := NewMockCommand(cmd, tt.cmdOutput, tt.cmdRetErr, args...)
 				return mockCmd
 			}
+			lookPath = func(file string) (string, error) {
+				return "/some/path", nil
+			}
 
 			var err error
 			if tt.addOrRemove == "add" {
@@ -116,6 +119,9 @@ func TestCreateDestroyInterface(t *testing.T) {
 			execCommand = func(cmd string, args ...string) Commander {
 				mockCmd := NewMockCommand(cmd, tt.cmdOutput, tt.cmdRetErr, args...)
 				return mockCmd
+			}
+			lookPath = func(file string) (string, error) {
+				return "/some/path", nil
 			}
 			var err error
 			if tt.createOrDestroy == "create" {

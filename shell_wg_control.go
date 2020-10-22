@@ -7,6 +7,7 @@ import (
 )
 
 var execCommand = NewCommand
+var lookPath = NewLookPath
 var postUpBase = "iptables -A FORWARD -i %s -j ACCEPT; iptables -A FORWARD -o %s -j ACCEPT; iptables -t nat -A POSTROUTING -o %s -j MASQUERADE"
 var postDownBase = "iptables -D FORWARD -i %s -j ACCEPT; iptables -D FORWARD -o %s -j ACCEPT; iptables -t nat -D POSTROUTING -o %s -j MASQUERADE"
 
@@ -22,6 +23,10 @@ func NewCommand(cmd string, args ...string) Commander {
 	return Command{
 		Cmd: exec.Command(cmd, args...),
 	}
+}
+
+func NewLookPath(file string) (string, error) {
+	return exec.LookPath(file)
 }
 
 func (c Command) CombinedOutput() ([]byte, error) {
@@ -89,10 +94,10 @@ func (s *ShellWireguardControl) CreateInterface() error {
 	//TODO figure out getting ipv4/ipv6 proto version
 	proto := "-4"
 
-	if _, err := exec.LookPath("ip"); err != nil {
+	if _, err := lookPath("ip"); err != nil {
 		return fmt.Errorf("Command 'ip' not found!")
 	}
-	if _, err := exec.LookPath("wg"); err != nil {
+	if _, err := lookPath("wg"); err != nil {
 		return fmt.Errorf("Command 'wg' not found!")
 	}
 	// create interface
@@ -140,10 +145,10 @@ func (s *ShellWireguardControl) AddInterfaceRoute() error {
 func (s *ShellWireguardControl) DestroyInterface() error {
 	//TODO figure out getting ipv4/ipv6 proto version
 	//proto := "-4"
-	if _, err := exec.LookPath("ip"); err != nil {
+	if _, err := lookPath("ip"); err != nil {
 		return fmt.Errorf("Command 'ip' not found!")
 	}
-	if _, err := exec.LookPath("wg"); err != nil {
+	if _, err := lookPath("wg"); err != nil {
 		return fmt.Errorf("Command 'wg' not found!")
 	}
 	// ip -4 rule show - wg allowed-ips to see if these change ip -4 rule show results
