@@ -11,10 +11,8 @@ import (
 	"math/big"
 	"net"
 	"os"
-	"os/exec"
 	"os/signal"
 	"strconv"
-	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -31,51 +29,6 @@ type ServerConfig struct {
 	httpPort        int
 	vpnPassword     string
 	purgeInterval   int
-}
-
-func generateWGPrivateKey() string {
-	if _, err := exec.LookPath("wg"); err != nil {
-		log.Errorf("Command 'ip' not found!")
-		os.Exit(1)
-	}
-	genKey := exec.Command("wg", "genkey")
-	key, err := genKey.CombinedOutput()
-	if err != nil {
-		log.Errorf("Error while generating private WireGuard key: %s", err)
-		os.Exit(1)
-	}
-	return strings.TrimSpace(string(key))
-}
-
-func writePrivateKeyToFile(key string) string {
-	// TODO use WriteRestricted func to decrease permissions
-	keyFile, err := ioutil.TempFile("", "WireGatePrivateKey")
-	if err != nil {
-		log.Errorf("Error while writing WireGuard private key to file: %s", err)
-		os.Exit(1)
-	}
-	defer keyFile.Close()
-	_, err = keyFile.WriteString(key)
-	if err != nil {
-		log.Errorf("Error while writing WireGuard private key file to '%s': %s", keyFile.Name(), err)
-		os.Exit(1)
-	}
-	return keyFile.Name()
-}
-
-func generateWGPublicKey(privateKey string) string {
-	if _, err := exec.LookPath("wg"); err != nil {
-		log.Errorf("Command 'ip' not found!")
-		os.Exit(1)
-	}
-	wgPubKey := exec.Command("wg", "pubkey")
-	wgPubKey.Stdin = strings.NewReader(privateKey)
-	pubKey, err := wgPubKey.CombinedOutput()
-	if err != nil {
-		log.Errorf("Error while generating WireGuard public key: %s", err)
-		os.Exit(1)
-	}
-	return strings.TrimSpace(string(pubKey))
 }
 
 func generateTLSCertKeyFiles(ifaceIP *net.IP) (string, string) {
@@ -150,11 +103,16 @@ func server_main(conf *ServerConfig) {
 		os.Exit(1)
 	}
 	log.Debugf("Setup SimpleIPGen with %d IPs in %s", len(ipgen.AvailableIPs), ipgen.BaseIPCIDR)
-	wgPrivateKey := generateWGPrivateKey()
-	wgPrivateKeyPath := writePrivateKeyToFile(wgPrivateKey)
-	log.Infof("Generated private WireGuard key and saved to %s", wgPrivateKeyPath)
-	wgPublicKey := generateWGPublicKey(wgPrivateKey)
+	log.Info("Generating WireGuard pub/priv key pair")
+
+	wgPrivateKey, wgPublicKey := generateWGKeypair()
 	log.Infof("Generated public WireGuard key %s", wgPublicKey)
+	wgPrivateKeyPath, err := WriteRestrictedFile("WireGatePrivateKey", wgPrivateKey)
+	if err != nil {
+		log.Errorf("Error while writing private WireGuard key: %s", err)
+		os.Exit(1)
+	}
+	log.Infof("Generated private WireGuard key and saved to %s", wgPrivateKeyPath)
 	wgctrl, err := wg.NewShellWireguardControl(ipgen.BaseIP, ipgen.SubnetIP, ipgen.CIDR, strconv.Itoa(conf.wgPort), conf.wgIface, conf.iface, wgPrivateKeyPath)
 	if err != nil {
 		log.Errorf("Error while creating WireGate controller : %s", err)
