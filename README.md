@@ -1,4 +1,7 @@
 # WireGate
+### Simple WireGuard setup for LANs for humans
+
+![WireGate logo](https://mattscodecave.com/media/wiregate_logo_200.png)
 
 Unit tests: [![Circle CI](https://circleci.com/gh/sirMackk/wiregate/tree/master.svg?style=svg)](https://circleci.com/gh/sirMackk/wiregate/tree/master)
 
@@ -8,11 +11,14 @@ With WireGate, you can setup a local WireGuard VPN quickly and easily.
 
 Imagine that you're in a library or airport and want to share data with your colleagues. Security is important for you. WireGate allows you to set up a WireGuard VPN on the local network. All you and your friends need to do is run _one command each_ and share a password out of band.
 
-**WireGate is at v0.9.1.** You might encounter some rough edges.
+
+**WireGate is at v0.9.3.** You might encounter some rough edges.
 
 ## How does it work?
 
-WireGate is a wrapper around WireGuard. It automates the manual steps required to create a VPN on a LAN. Here's how it work:
+WireGate is a wrapper around WireGuard. It runs in either server or client mode. As a server, it creates the WireGuard server, starts an HTTPS server, and configures service discovery (mdns). As a client, it searches out WireGate services on the LAN and then configures the host to connect to one of them.
+
+Here's how it looks from a user's perspective:
 
 1. Alice starts the WireGate server and gives the password to Bob on a piece of paper.
 2. Bob starts the client, which finds the server on the local network and prompts Bob for the password.
@@ -129,5 +135,29 @@ default via 192.168.1.1 dev wlp4s0 proto dhcp metric 600
 
 If there's no wg0 route, that's a good place to start investigating.
 
+## Roadmap to 1.0.0
+
+The needful changes before WireGate is _solid_:
+1. Write client and server unit tests (incl. refactoring the code).
+2. Stop passing IPs as string - use a good struct.
+3. Consider if it's worth replacing the exec.Command `wg` wrapper with something like `wgctrl-go`.
+
+## Graphics Credits
+
+- Gopher graphic made using [Gopher Konstructor][1] ([Gopher Konstructor web app][2])
+- Shield graphic downloaded from [FreeSVG][3]
+
+## License
+
+Copyright (C) 2020 sirMackk
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with this program. If not, see http://www.gnu.org/licenses/.
 
 [0]: https://www.wireguard.com/
+[1]: https://github.com/quasilyte/gopherkon
+[2]: https://quasilyte.dev/gopherkon/
+[3]: https://freesvg.org/1528957643
