@@ -12,7 +12,7 @@ With WireGate, you can setup a local WireGuard VPN quickly and easily.
 Imagine that you're in a library or airport and want to share data with your colleagues. Security is important for you. WireGate allows you to set up a WireGuard VPN on the local network. All you and your friends need to do is run _one command each_ and share a password out of band.
 
 
-**WireGate is at v0.9.3.** You might encounter some rough edges.
+**WireGate is at v0.9.4.** You might encounter some rough edges.
 
 ## How does it work?
 
