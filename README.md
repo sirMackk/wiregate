@@ -26,9 +26,32 @@ Here's how it looks from a user's perspective:
 4. Bob's client configures its WireGuard client.
 5. Both computers can talk to each other securely.
 
-## Using
+## How to install it?
 
-1. Make sure [WireGuard is installed][0] on all computers.
+There are two ways: download a pre-compiled binary or build it yourself.
+
+You can download the current version using these links:
+
+
+linux-amd64: http://mattscodecave.com/files/wiregate-0.9.4-linux-amd64.tar.gz
+
+sha256sum: `7b7b975a941ec0358611149eeb902644c257de2015c3970bca3a8840276d2438`
+
+linux-arm5: http://mattscodecave.com/files/wiregate-0.9.4-linux-arm5.tar.gz
+
+sha256sum: `39b557610cbba37d4940ebb96f6c50c0d8803556481b5e6adec3ca7b741ad375`
+
+If you want to build it yourself, download the sourcecode, then build with go >1.13:
+
+```
+cd wiregate/cmd/wiregate && go build .
+```
+
+Finally, copy the binary somewhere your PATH points to, eg. copy the it to `/usr/local/bin` 
+
+## How to use it?
+
+1. **Make sure [WireGuard is installed][0] on all computers.**
 2. Join the same network. In 2020, this likely means the same wifi access point.
 3. On the server, run the following command:
 
